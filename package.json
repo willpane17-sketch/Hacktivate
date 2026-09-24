@@ -1,0 +1,28 @@
+{
+  "name": "hacktivate-ai-solver",
+  "version": "1.0.0",
+  "description": "AI dashboard: paste a Hacktivate cybersecurity question screenshot, get the answer instantly",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.js",
+    "dev": "node --env-file-if-exists=.env --watch server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/willpane17-sketch/Hacktivate.git"
+  },
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/willpane17-sketch/Hacktivate/issues"
+  },
+  "homepage": "https://github.com/willpane17-sketch/Hacktivate#readme",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
+    "express": "^5.2.1",
+    "marked": "^18.0.14"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  }
+}

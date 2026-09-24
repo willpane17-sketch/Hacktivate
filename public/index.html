@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hacktivate AI Solver</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%2322d3a6%27/%3E%3Ctext x=%275%27 y=%2722%27 font-family=%27monospace%27 font-weight=%27bold%27 font-size=%2716%27 fill=%27%2304241b%27%3E%26gt;_%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">&gt;_</span>
+      <div>
+        <h1>Hacktivate AI Solver</h1>
+        <p>Paste a screenshot of a <a href="https://www.hacktivate.io/cybersecurity" target="_blank" rel="noopener">Hacktivate cybersecurity</a> question and get the answer instantly.</p>
+      </div>
+    </div>
+    <div id="status" class="status">Checking server…</div>
+  </header>
+
+  <main class="layout">
+    <aside class="history">
+      <div class="history-head">
+        <h2>History</h2>
+        <button id="clearHistory" class="ghost small" type="button">Clear</button>
+      </div>
+      <ul id="historyList"></ul>
+      <p id="historyEmpty" class="muted">Answered questions show up here.</p>
+    </aside>
+
+    <section class="workspace">
+      <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Add screenshots">
+        <input id="fileInput" type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden />
+        <div class="dz-inner">
+          <div class="dz-icon">⬆</div>
+          <strong>Paste (Ctrl/⌘ + V), drop, or click to add screenshots</strong>
+          <span class="muted">PNG, JPG, GIF or WebP · up to 10 per question</span>
+        </div>
+      </div>
+
+      <div id="thumbs" class="thumbs"></div>
+
+      <div class="controls">
+        <textarea id="note" rows="2" placeholder="Optional: extra context (e.g. &quot;this is module 3, Linux permissions&quot;)"></textarea>
+        <div class="control-row">
+          <label class="field">
+            <span>Mode</span>
+            <select id="effort">
+              <option value="low">Fast</option>
+              <option value="medium" selected>Balanced</option>
+              <option value="high">Thorough</option>
+            </select>
+          </label>
+          <label class="toggle">
+            <input id="autoSolve" type="checkbox" checked />
+            <span>Solve as soon as I paste</span>
+          </label>
+          <div class="spacer"></div>
+          <button id="clearBtn" class="ghost" type="button">Clear</button>
+          <button id="solveBtn" class="primary" type="button" disabled>Get answer <kbd>Ctrl ↵</kbd></button>
+        </div>
+      </div>
+
+      <article id="answerCard" class="answer-card hidden">
+        <div class="answer-head">
+          <h2>Answer</h2>
+          <div class="answer-actions">
+            <span id="timer" class="muted"></span>
+            <button id="copyBtn" class="ghost small" type="button">Copy</button>
+            <button id="stopBtn" class="ghost small hidden" type="button">Stop</button>
+          </div>
+        </div>
+        <div id="answer" class="answer markdown"></div>
+      </article>
+    </section>
+  </main>
+
+  <template id="thumbTpl">
+    <figure class="thumb">
+      <img alt="Screenshot" />
+      <button class="remove" type="button" aria-label="Remove screenshot">×</button>
+    </figure>
+  </template>
+
+  <script src="/vendor/marked.umd.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
