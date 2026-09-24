@@ -2,6 +2,9 @@ const MAX_IMAGES = 10;
 const MAX_EDGE = 2000; // downscale huge screenshots to keep uploads fast
 const HISTORY_KEY = "hacktivate-solver-history";
 const HISTORY_LIMIT = 30;
+const SUPPORTED = /^image\/(png|jpeg|gif|webp)$/;
+// When the page is opened straight from disk (file://), talk to the local server.
+const API_BASE = location.protocol === "file:" ? "http://localhost:3000" : "";
 
 const $ = (id) => document.getElementById(id);
 const dropzone = $("dropzone");
@@ -20,6 +23,8 @@ const timerEl = $("timer");
 const statusEl = $("status");
 const historyList = $("historyList");
 const historyEmpty = $("historyEmpty");
+const pasteBtn = $("pasteBtn");
+const toastEl = $("toast");
 
 /** @type {{mediaType: string, data: string, url: string}[]} */
 let images = [];
@@ -29,7 +34,22 @@ let answerText = "";
 // Escape raw HTML in model output so nothing in a screenshot can inject markup.
 const escapeHtml = (s) =>
   s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-marked.use({
+let toastTimer;
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.remove("hidden");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.add("hidden"), 5000);
+}
+
+// Fallback renderer if marked failed to load: escaped text with line breaks and bold.
+let renderMarkdown = (md) =>
+  escapeHtml(md)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\n/g, "<br>");
+if (window.marked) {
+  marked.use({
   renderer: {
     html: (token) => escapeHtml(token.text ?? ""),
     link({ href, tokens }) {
@@ -37,11 +57,12 @@ marked.use({
       return `<a href="${escapeHtml(safe)}" target="_blank" rel="noopener">${this.parser.parseInline(tokens)}</a>`;
     },
   },
-});
-const renderMarkdown = (md) => marked.parse(md);
+  });
+  renderMarkdown = (md) => marked.parse(md);
+}
 
 // ---------- server status ----------
-fetch("/api/health")
+fetch(`${API_BASE}/api/health`)
   .then((r) => r.json())
   .then((h) => {
     if (h.keyConfigured) {
@@ -53,7 +74,7 @@ fetch("/api/health")
     }
   })
   .catch(() => {
-    statusEl.textContent = "● server offline";
+    statusEl.textContent = "● server offline — run npm start";
     statusEl.className = "status bad";
   });
 
@@ -81,7 +102,8 @@ async function fileToImage(file) {
   let mediaType = file.type;
   const img = await loadImage(dataUrl);
   const longest = Math.max(img.naturalWidth, img.naturalHeight);
-  if (longest > MAX_EDGE || mediaType === "image/gif") {
+  // Re-encode anything the API can't take directly (BMP, TIFF, HEIC, missing type) plus GIFs/huge images.
+  if (longest > MAX_EDGE || mediaType === "image/gif" || !SUPPORTED.test(mediaType)) {
     const scale = Math.min(1, MAX_EDGE / longest);
     const canvas = document.createElement("canvas");
     canvas.width = Math.round(img.naturalWidth * scale);
@@ -94,18 +116,28 @@ async function fileToImage(file) {
 }
 
 async function addFiles(fileList) {
-  const files = [...fileList].filter((f) => /^image\/(png|jpeg|gif|webp)$/.test(f.type));
-  if (!files.length) return false;
+  const files = [...fileList].filter((f) => f.type === "" || f.type.startsWith("image/"));
+  if (!files.length) {
+    toast("That isn't an image. Copy the screenshot itself (e.g. Win+Shift+S or ⌘+Ctrl+Shift+4), then paste.");
+    return false;
+  }
   const room = MAX_IMAGES - images.length;
+  if (room <= 0) {
+    toast(`Max ${MAX_IMAGES} screenshots per question.`);
+    return false;
+  }
+  let added = 0;
   for (const file of files.slice(0, room)) {
     try {
       images.push(await fileToImage(file));
+      added++;
     } catch (e) {
       console.error("Could not read image", e);
+      toast("Couldn't read that image format. Try PNG or JPG.");
     }
   }
   renderThumbs();
-  return true;
+  return added > 0;
 }
 
 function renderThumbs() {
@@ -151,11 +183,17 @@ dropzone.addEventListener("drop", async (e) => {
 });
 
 document.addEventListener("paste", async (e) => {
-  const files = [...(e.clipboardData?.items ?? [])]
+  const cd = e.clipboardData;
+  let files = [...(cd?.items ?? [])]
     .filter((it) => it.kind === "file")
     .map((it) => it.getAsFile())
     .filter(Boolean);
-  if (!files.length) return; // let normal text paste through
+  if (!files.length && cd?.files?.length) files = [...cd.files];
+  if (!files.length) {
+    // Plain text pasted into the note box is fine; anywhere else, explain what went wrong.
+    if (e.target !== note) toast("No image on the clipboard. Take/copy a screenshot, then press Ctrl/⌘+V here.");
+    return;
+  }
   e.preventDefault();
   if ((await addFiles(files)) && autoSolve.checked) solve();
 });
@@ -168,6 +206,30 @@ clearBtn.addEventListener("click", () => {
   images = [];
   note.value = "";
   renderThumbs();
+});
+
+// Explicit paste button (async Clipboard API) for when keyboard paste isn't convenient.
+pasteBtn.addEventListener("click", async (e) => {
+  e.stopPropagation();
+  if (!navigator.clipboard?.read) {
+    toast("Your browser blocks this button — press Ctrl/⌘+V instead.");
+    return;
+  }
+  try {
+    const files = [];
+    for (const item of await navigator.clipboard.read()) {
+      const type = item.types.find((t) => t.startsWith("image/"));
+      if (type) files.push(new File([await item.getType(type)], "clipboard", { type }));
+    }
+    if (!files.length) {
+      toast("No image on the clipboard. Copy a screenshot first.");
+      return;
+    }
+    if ((await addFiles(files)) && autoSolve.checked) solve();
+  } catch (err) {
+    console.error(err);
+    toast("Clipboard access was blocked — allow it, or press Ctrl/⌘+V instead.");
+  }
 });
 
 // ---------- solving ----------
@@ -191,7 +253,7 @@ async function solve() {
 
   let failed = false;
   try {
-    const res = await fetch("/api/solve", {
+    const res = await fetch(`${API_BASE}/api/solve`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

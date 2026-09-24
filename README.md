@@ -23,7 +23,7 @@ cp .env.example .env      # then put your key in .env
 npm start
 ```
 
-Open http://localhost:3000.
+Open http://localhost:3000. You can also open `public/index.html` directly, as long as `npm start` is running.
 
 ### Configuration (`.env`)
 

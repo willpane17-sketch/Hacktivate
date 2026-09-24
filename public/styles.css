@@ -116,6 +116,23 @@ a { color: var(--accent); }
 .dz-inner { display: grid; gap: 6px; justify-items: center; }
 .dz-icon { font-size: 28px; color: var(--accent); }
 
+.dz-inner #pasteBtn { margin-top: 6px; }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  max-width: min(560px, calc(100vw - 32px));
+  background: var(--panel-2);
+  border: 1px solid var(--danger);
+  color: var(--text);
+  padding: 10px 16px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
+  z-index: 10;
+}
+
 .thumbs { display: flex; flex-wrap: wrap; gap: 10px; }
 .thumbs:empty { display: none; }
 .thumb {

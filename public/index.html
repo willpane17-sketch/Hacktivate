@@ -31,11 +31,12 @@
 
     <section class="workspace">
       <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Add screenshots">
-        <input id="fileInput" type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden />
+        <input id="fileInput" type="file" accept="image/*" multiple hidden />
         <div class="dz-inner">
           <div class="dz-icon">⬆</div>
           <strong>Paste (Ctrl/⌘ + V), drop, or click to add screenshots</strong>
-          <span class="muted">PNG, JPG, GIF or WebP · up to 10 per question</span>
+          <span class="muted">Any image format · up to 10 per question</span>
+          <button id="pasteBtn" class="ghost small" type="button">📋 Paste from clipboard</button>
         </div>
       </div>
 
@@ -75,6 +76,8 @@
       </article>
     </section>
   </main>
+
+  <div id="toast" class="toast hidden" role="status"></div>
 
   <template id="thumbTpl">
     <figure class="thumb">

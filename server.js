@@ -13,6 +13,15 @@ const EFFORTS = new Set(["low", "medium", "high", "xhigh", "max"]);
 const client = new Anthropic();
 const app = express();
 
+// Allow the dashboard to be opened straight from disk (file:// pages send Origin "null").
+app.use((req, res, next) => {
+  if (req.headers.origin === "null") {
+    res.setHeader("Access-Control-Allow-Origin", "null");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    if (req.method === "OPTIONS") return res.sendStatus(204);
+  }
+  next();
+});
 app.use(express.json({ limit: "40mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/vendor", express.static(path.join(__dirname, "node_modules/marked/lib")));
